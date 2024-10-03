@@ -22,6 +22,10 @@ class SimpleHTTPGetHandler(BaseHTTPRequestHandler):
         print(url)
 
         cache_path = os.path.join(cache_dir, url)
+        if os.path.isdir(cache_path):
+            self.send_response(404)
+            self.wfile.write(b"Cannot process directory")
+            return
         
         # Check if url exists
         if not os.path.exists(cache_path):
@@ -32,7 +36,7 @@ class SimpleHTTPGetHandler(BaseHTTPRequestHandler):
                 return
             
             dir_path = os.path.dirname(cache_path)
-            os.makedirs(dir_path)
+            os.makedirs(dir_path, exist_ok = True)
             with open(cache_path, 'w') as f:
                 f.write(res.text)
 
@@ -52,7 +56,7 @@ class SimpleHTTPGetHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"Cannot process request.")
 
 if __name__ == '__main__':
-    httpd = HTTPServer(('localhost', 8000), SimpleHTTPGetHandler)
-    print("Serving at http://localhost:8000")
+    httpd = HTTPServer(('0.0.0.0', 51234), SimpleHTTPGetHandler)
+    print("Serving at http://0.0.0.0:51234")
     httpd.serve_forever()
 
