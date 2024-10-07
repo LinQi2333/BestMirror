@@ -12,8 +12,6 @@ test_path = "event_story/event_ashiato_2021/scenario_rip/event_39_08.asset"
 
 cache_dir = "./cache/"
 
-DB_name_list = ["areatalks", "cards", "events", "festivals", "greets", "mainStory", "setting", "specials"]
-
 cache_expiration_time = 600
 
 # a = requests.get(best_url + test_path, headers=headers, proxies=localProxy).text
@@ -25,9 +23,8 @@ class SimpleHTTPGetHandler(BaseHTTPRequestHandler):
  
     def do_GET(self):
         file_name_with_ext = self.path.split('/')[-1]
-        file_name, file_ext = os.path.splitext(file_name_with_ext)
 
-        if file_name in DB_name_list:
+        if file_name_with_ext[-5:] == ".json":
             self.handle_request(bestDBurl, file_name_with_ext)
         else:
             self.handle_request(best_url, self.path[1:])
@@ -42,6 +39,19 @@ class SimpleHTTPGetHandler(BaseHTTPRequestHandler):
             self.wfile.write(b"Cannot process directory")
             return
 
+        # Path not exists or expired, then update
+        if not os.path.exists(cache_path):
+
+            res = requests.get(base_url + url, headers = headers, proxies = localProxy)
+            if not res:
+                self.send_response(res.status_code)
+                return
+            
+            dir_path = os.path.dirname(cache_path)
+            os.makedirs(dir_path, exist_ok = True)
+            with open(cache_path, 'w') as f:
+                f.write(res.text)
+
         # Path exists and not expired
         if os.path.exists(cache_path) and not self.is_cache_expired(cache_path):
             with open(cache_path) as f:
@@ -55,19 +65,6 @@ class SimpleHTTPGetHandler(BaseHTTPRequestHandler):
         else:# Path exists but expired
             if os.path.exists(cache_path):
                 os.remove(cache_path)
-
-        # Path not exists or expired, then update
-        if not os.path.exists(cache_path):
-
-            res = requests.get(base_url + url, headers = headers, proxies = localProxy)
-            if not res:
-                self.send_response(res.status_code)
-                return
-            
-            dir_path = os.path.dirname(cache_path)
-            os.makedirs(dir_path, exist_ok = True)
-            with open(cache_path, 'w') as f:
-                f.write(res.text)
 
         # if os.path.exists(cache_path):
 
