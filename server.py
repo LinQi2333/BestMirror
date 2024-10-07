@@ -43,6 +43,7 @@ class SimpleHTTPGetHandler(BaseHTTPRequestHandler):
         if not os.path.exists(cache_path):
 
             res = requests.get(base_url + url, headers = headers, proxies = localProxy)
+            content_type = res.headers.get('Content-Type', 'text/plain')
             if not res:
                 self.send_response(res.status_code)
                 return
@@ -58,28 +59,24 @@ class SimpleHTTPGetHandler(BaseHTTPRequestHandler):
                 contents = f.read()
 
             self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
+            self.send_header('Content-type', content_type)
             self.end_headers()
             self.wfile.write(bytes(contents, encoding='utf-8'))
             return
         else:# Path exists but expired
             if os.path.exists(cache_path):
                 os.remove(cache_path)
-
-        # if os.path.exists(cache_path):
-
-        #     with open(cache_path) as f:
-        #         contents = f.read()
-
-        #     self.send_response(200)
-        #     self.send_header('Content-type', 'text/plain')
-        #     self.end_headers()
-        #     self.wfile.write(bytes(contents, encoding='utf-8'))
-
-        #     return
-
-        self.send_response(404)
-        self.wfile.write(b"Cannot process request.")
+                # Update
+                res = requests.get(base_url + url, headers = headers, proxies = localProxy)
+                content_type = res.headers.get('Content-Type', 'text/plain')
+                if not res:
+                    self.send_response(res.status_code)
+                    return
+            
+                dir_path = os.path.dirname(cache_path)
+                os.makedirs(dir_path, exist_ok = True)
+                with open(cache_path, 'w', encoding='utf-8') as f:
+                    f.write(res.text)
 
     def is_cache_expired(self, cache_path):
         file_mtime = os.path.getmtime(cache_path)
