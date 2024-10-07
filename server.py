@@ -22,7 +22,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 class SimpleHTTPGetHandler(BaseHTTPRequestHandler):
  
     def do_GET(self):
-        file_name_with_ext = self.path.split('/')[-1]
+        file_name_with_ext = self.path.split('/')[0]
 
         if file_name_with_ext[-5:] == ".json":
             self.handle_request(bestDBurl, file_name_with_ext)
@@ -49,7 +49,7 @@ class SimpleHTTPGetHandler(BaseHTTPRequestHandler):
             
             dir_path = os.path.dirname(cache_path)
             os.makedirs(dir_path, exist_ok = True)
-            with open(cache_path, 'w') as f:
+            with open(cache_path, 'w', encoding='utf-8') as f:
                 f.write(res.text)
 
         # Path exists and not expired
