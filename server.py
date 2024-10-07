@@ -14,6 +14,8 @@ cache_dir = "./cache/"
 
 DB_name_list = ["areatalks", "cards", "events", "festivals", "greets", "mainStory", "setting", "specials"]
 
+cache_expiration_time = 600
+
 # a = requests.get(best_url + test_path, headers=headers, proxies=localProxy).text
 # print(a)
 
@@ -39,9 +41,22 @@ class SimpleHTTPGetHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.wfile.write(b"Cannot process directory")
             return
-        
 
-        # Check if url exists
+        # Path exists and not expired
+        if os.path.exists(cache_path) and not self.is_cache_expired(cache_path):
+            with open(cache_path) as f:
+                contents = f.read()
+
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(bytes(contents, encoding='utf-8'))
+            return
+        else:# Path exists but expired
+            if os.path.exists(cache_path):
+                os.remove(cache_path)
+
+        # Path not exists or expired, then update
         if not os.path.exists(cache_path):
 
             res = requests.get(base_url + url, headers = headers, proxies = localProxy)
@@ -54,20 +69,25 @@ class SimpleHTTPGetHandler(BaseHTTPRequestHandler):
             with open(cache_path, 'w') as f:
                 f.write(res.text)
 
-        if os.path.exists(cache_path):
+        # if os.path.exists(cache_path):
 
-            with open(cache_path) as f:
-                contents = f.read()
+        #     with open(cache_path) as f:
+        #         contents = f.read()
 
-            self.send_response(200)
-            self.send_header('Content-type', 'text/plain')
-            self.end_headers()
-            self.wfile.write(bytes(contents, encoding='utf-8'))
+        #     self.send_response(200)
+        #     self.send_header('Content-type', 'text/plain')
+        #     self.end_headers()
+        #     self.wfile.write(bytes(contents, encoding='utf-8'))
 
-            return
+        #     return
 
         self.send_response(404)
         self.wfile.write(b"Cannot process request.")
+
+    def is_cache_expired(self, cache_path):
+        file_mtime = os.path.getmtime(cache_path)
+        current_time = time.time()
+        return (current_time - file_mtime) > cache_expiration_time
 
 if __name__ == '__main__':
     httpd = HTTPServer(('0.0.0.0', 51234), SimpleHTTPGetHandler)
